@@ -95,5 +95,14 @@ async function loginUser(req, res) {
             message: "Internal server error"
         });
     }
+};
+// was meant for test purposes to see if the protectRoutes middleware is working correctly
+async function getProfile(req, res) {
+    return res.status(200).json({
+        success: true,
+        user: req.user
+    })
 }
-module.exports = {registerUser, loginUser};
+module.exports = {registerUser, 
+                loginUser,  
+                getProfile};
