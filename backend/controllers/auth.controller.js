@@ -1,7 +1,8 @@
 const bcrypt = require('bcrypt');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto')
+const crypto = require('crypto');
+const {sendResetPasswordEmail} = require('../services/email.service')
 
 
 async function registerUser(req ,res) {
@@ -100,6 +101,7 @@ async function loginUser(req, res) {
 
 async function forgotPassword(req, res) {
     let user;
+    let resetLink = '';
     try {
         const {email} = req.body;
         if(!email) {
@@ -134,6 +136,10 @@ async function forgotPassword(req, res) {
         // for test purposes
         console.log(`Raw token: ${resetToken}`);
         console.log(`Hashed token: ${hashedToken}`);
+        console.log(`Expires at:  ${user.passwordResetExpires}`);
+         resetLink = `${process.env.FRONTEND_URL}/components/reset-password.html?token=${resetToken}`
+
+        await sendResetPasswordEmail(user.email, resetLink)
 
         return res.status(200).json({
             success: true,
@@ -162,4 +168,5 @@ async function getProfile(req, res) {
 }
 module.exports = {registerUser, 
                 loginUser,  
-                getProfile};
+                getProfile,
+                forgotPassword};
