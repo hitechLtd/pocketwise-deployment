@@ -60,11 +60,6 @@ async function loginUser(req, res) {
             return res.status(401).json({
                 success: false,
                 message: "Invalid email or password",
-                user: {
-                    id:user._id,
-                    fullName: user.fullName,
-                    email: user.email
-                }
             });
         }
 
@@ -88,7 +83,12 @@ async function loginUser(req, res) {
         return res.status(200).json({
             success: true,
             message: "Login successful",
-            token: token
+            token: token,
+             user: {
+                    id:user._id,
+                    fullName: user.fullName,
+                    email: user.email
+                }
         })
     } catch(error) {
         return res.status(500).json({

@@ -13,10 +13,7 @@
   "type": "commonjs",
   "dependencies": {
     "bcrypt": "^6.0.0",
-<<<<<<< HEAD
     "cors": "^2.8.6",
-=======
->>>>>>> origin/feature/ai-insights
     "crypto": "^1.0.1",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",

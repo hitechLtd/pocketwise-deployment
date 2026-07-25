@@ -43,52 +43,91 @@
 
           <div class="field-row">
             <label><input type="checkbox" /> Remember me</label>
-            <a href="forgot-password.html">Forgot password?</a>
+            <a href="./Forgot password.html">Forgot password?</a>
           </div>
 
           <button type="submit" class="btn btn-primary btn-block">Login</button>
         </form>
 
         <div class="auth-foot">
-          Don't have an account? <a href="signup.html">Sign up</a>
+          Don't have an account? <a href="./Sign up.html">Sign up</a>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    // Demo-only auth: no real backend check needed for the hackathon demo.
-    // Any non-empty email/password logs the user in.
-    document.getElementById('login-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value.trim();
-      const errorBox = document.getElementById('error-box');
-      errorBox.classList.remove('show');
+  
+  const loginForm = document.getElementById('login-form');
+  const errorBox = document.getElementById('error-box');
+  const loginButton = loginForm.querySelector('button[type="submit"]');
 
-      try {
-        const res = await fetch('http://localhost:5000/api/auth/login', {
+  loginForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    errorBox.textContent = '';
+    errorBox.classList.remove('show');
+
+    loginButton.disabled = true;
+    loginButton.textContent = 'Logging in...';
+
+    try {
+      const response = await fetch(
+        'http://localhost:5000/api/auth/login',
+        {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        });
-        const data = await res.json();
-
-        if (!res.ok) {
-          errorBox.textContent = data.message || 'Incorrect email or password. Try again.';
-          errorBox.classList.add('show');
-          return;
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            password,
+          }),
         }
+      );
 
-        // Real login succeeded — store the real JWT token and the real user's name
-        localStorage.setItem('pw_token', data.token);
-        localStorage.setItem('pw_user_name', data.user.name);
-        window.location.href = 'dashboard.html';
-      } catch (err) {
-        errorBox.textContent = 'Could not reach the server. Is the backend running on port 5000?';
+      const data = await response.json();
+      console.log("Login response:", data)
+
+      if (!response.ok) {
+        errorBox.textContent =
+          data.message || 'Incorrect email or password. Try again.';
+
         errorBox.classList.add('show');
+        return;
       }
-    });
+
+      if (!data.token || !data.user) {
+        errorBox.textContent =
+          'The server returned an incomplete login response.';
+
+        errorBox.classList.add('show');
+        return;
+      }
+
+      localStorage.setItem('pw_token', data.token);
+      localStorage.setItem(
+        'pw_user_name',
+        data.user.fullName || 'User'
+      );
+
+      window.location.href = 'dashboard.html';
+    } catch (error) {
+      console.error('Login error:', error);
+
+      errorBox.textContent =
+        'Could not reach the server. Check that the backend is running on port 5000.';
+
+      errorBox.classList.add('show');
+    } finally {
+      loginButton.disabled = false;
+      loginButton.textContent = 'Login';
+    }
+  });
+
   </script>
 </body>
 </html>
