@@ -79,27 +79,74 @@
             <button type="submit" class="btn btn-primary btn-block">
               Sign Up
             </button>
+            <p id="message"></p>
           </form>
 
           <div class="auth-foot">
             Already have an account? <a href="login.html">Login</a>
+            
           </div>
         </div>
       </div>
     </div>
     <!-- Form Verification -->
     <script>
-      document.getElementById("signup-form").addEventListener("submit", (e) => {
-        e.preventDefault();
+      const signupForm = document.getElementById("signup-form");
+      const messageElement = document.getElementById("message");
+
+      signupForm.addEventListener("submit", async (event) =>{
+        event.preventDefault();
+
+        const fullName = document.getElementById("fullname").value.trim();
+        const email = document.getElementById("email").value.trim();
         const password = document.getElementById("password").value;
-        const confirm = document.getElementById("confirm").value;
-        if (password !== confirm) {
-          alert("Passwords don't match — please check and try again.");
+        const confirmPassword = document.getElementById("confirm").value;
+
+        messageElement.textContent = "";
+
+        if(password !== confirmPassword) {
+          messageElement.textContent = "Passwords do not match";
           return;
         }
-        // Demo-only: goes straight to dashboard, no real account creation.
-        window.location.href = "dashboard.html";
-      });
+        const registrationDate = {
+          fullName,
+          email,
+          password
+        };
+
+        try {
+          const response = await fetch(
+            "http://localhost:5000/api/auth/register",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type" : "application/json",
+              },
+              body: JSON.stringify(registrationDate),
+            }
+          );
+          const data = await response.json();
+
+          if(!response.ok) {
+            messageElement.textContent = 
+              data.message || "Unable to create aaccount.";
+              return;
+          }
+          messageElement.textContent = 
+           data.message || "Account created successfully.";
+
+           signupForm.reset();
+
+           setTimeout(() => {
+            window.location.href = "login.html";
+           }, 1500);
+        } catch(error) {
+          console.error("Registering error:", error);
+
+          messageElement.textContent = 
+           "Could not connect to the server. please try again."
+        }
+      })
     </script>
   </body>
 </html>
