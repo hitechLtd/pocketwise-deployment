@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Login — PocketWise AI</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-card">
+      <div class="auth-hero">
+        <div class="brand">
+          <div class="brand-mark">💼</div>
+          <div>
+            <div class="brand-name">PocketWise <span>AI</span></div>
+            <div class="brand-tag">Your AI Financial Coach</div>
+          </div>
+        </div>
+        <h1>Welcome back 👋</h1>
+        <p>Login to continue managing your finances smartly.</p>
+      </div>
+
+      <div class="auth-body">
+        <div class="error-msg" id="error-box">Incorrect email or password. Try again.</div>
+
+        <form id="login-form">
+          <div class="field">
+            <label for="email">Email</label>
+            <div class="field-input">
+              <span class="field-icon">✉️</span>
+              <input type="email" id="email" placeholder="Enter your email" required />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="password">Password</label>
+            <div class="field-input">
+              <span class="field-icon">🔒</span>
+              <input type="password" id="password" placeholder="Enter your password" required />
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label><input type="checkbox" /> Remember me</label>
+            <a href="forgot-password.html">Forgot password?</a>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">Login</button>
+        </form>
+
+        <div class="auth-foot">
+          Don't have an account? <a href="signup.html">Sign up</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Demo-only auth: no real backend check needed for the hackathon demo.
+    // Any non-empty email/password logs the user in.
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const errorBox = document.getElementById('error-box');
+      errorBox.classList.remove('show');
+
+      try {
+        const res = await fetch('http://localhost:5000/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          errorBox.textContent = data.message || 'Incorrect email or password. Try again.';
+          errorBox.classList.add('show');
+          return;
+        }
+
+        // Real login succeeded — store the real JWT token and the real user's name
+        localStorage.setItem('pw_token', data.token);
+        localStorage.setItem('pw_user_name', data.user.name);
+        window.location.href = 'dashboard.html';
+      } catch (err) {
+        errorBox.textContent = 'Could not reach the server. Is the backend running on port 5000?';
+        errorBox.classList.add('show');
+      }
+    });
+  </script>
+</body>
+</html>
