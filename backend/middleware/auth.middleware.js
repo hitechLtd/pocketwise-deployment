@@ -5,7 +5,6 @@ async function protectRoutes(req, res, next) {
     try {
         const authHeader = req.headers.authorization;
         // A check
-        console.log('Authorization Header:', authHeader);
         if(!authHeader || !authHeader.startsWith('Bearer ')) {
             return res.status(401).json({
                 success: false,
