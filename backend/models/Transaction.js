@@ -4,38 +4,49 @@ const transactionSchema = new mongoose.Schema(
     {
         user: {
             type: mongoose.Schema.Types.ObjectId,
-            ref:"user",
+            ref:"User",
             required:true,
         },
 
         type: {
-            type:String,
-            enum:['income', 'expense']
-        },
-        amount :{
-            type:Number,
+            type: String,
+            enum:['income', 'expense'],
             required: true
+        }, 
+
+
+        amount :{
+            type: Number,
+            required: true,
+            min: 0.01
         },
         category: {
             type: String,
             enum: [
-                'Food $ drinks',
-                'Transport',
-                'Accomodation',
-                'Education',
-                'Entertainment',
-                'Others'
+                "Food & drinks",
+                "Transport",
+                "Accommodation",
+                "Education",
+                "Entertainment",
+                "Others"
             ],
-            default:'Others'
+            default: "Others"
         },
         description:{
             type: String,
             default: "",
             trim: true,
         },
-        date: {
+      
+        score: {
+            type: Number,
+            default: 0,
+            min: 0,
+            max: 100
+        },
+          date: {
             type: Date,
-            default: Date.now()
+            default: Date.now
         },
     },
     {
