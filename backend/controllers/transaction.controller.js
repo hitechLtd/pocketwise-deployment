@@ -58,8 +58,37 @@ async function addTransactions(req,  res) {
         })
     }
 }
-
-
+async function deleteTransaction(req, res) {
+    try {
+        const { id } = req.params;
+        if(!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid transaction ID",
+            });
+        }
+        const transaction = await Transaction.findOneAndDelete({
+            _id: id,
+            user: req.user._id
+        });
+        if(!transaction) {
+            return res.status(404).json({
+                success: false,
+                message: "Transaction not found",
+            });
+        }
+        return res.status(200).json({
+            success: true,
+            message:"Transaction deleted successfully"
+        })
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Unable to delete transaction"
+        })
+    }
+}
 module.exports = {getTransactions,
-                 addTransactions
+                 addTransactions,
+                 deleteTransaction
                   }
