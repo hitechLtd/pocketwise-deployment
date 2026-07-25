@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema(
             type: String,
             default: undefined,
         },
-        passwordResetExpire: {
+        passwordResetExpires: {
             type: Date,
             default: undefined,
         }

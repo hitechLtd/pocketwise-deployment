@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto')
 
 
 async function registerUser(req ,res) {
@@ -96,6 +97,62 @@ async function loginUser(req, res) {
         });
     }
 };
+
+async function forgotPassword(req, res) {
+    let user;
+    try {
+        const {email} = req.body;
+        if(!email) {
+            return res.status(400).json({
+                success: false,
+                message: "Email is required"
+            });
+        }
+        const normalizedEmail = email.toLowerCase().trim();
+
+        user = await User.findOne({
+            email: normalizedEmail
+        });
+        if(!user) {
+            return res.status(200).json({
+                success: true,
+                message: "If a user with that email exists, a password reset link has been sent"
+            });
+        }
+        const resetToken = crypto
+          .randomBytes(32)
+          .toString("hex");
+        //   hash the token before saving it to the database
+        const hashedToken = crypto
+           .createHash("sha256")
+           .update(resetToken)
+           .digest("hex");
+        
+        user.passwordResetToken = hashedToken;
+        user.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+        await user.save();
+        // for test purposes
+        console.log(`Raw token: ${resetToken}`);
+        console.log(`Hashed token: ${hashedToken}`);
+
+        return res.status(200).json({
+            success: true,
+            message: "If a user with that email exists, a password reset link has been sent"
+        });
+    } catch(error) {
+        console.error('Forgot password error:', error.message);
+
+        if(user) {
+            user.passwordResetToken = undefined;
+            user.passwordResetExpires = undefined;
+            await user.save();
+        }
+        return res.status(500).json({
+            success: false,
+            message: "Unable to process password reset request. please try again"
+        });
+    }
+}
 // was meant for test purposes to see if the protectRoutes middleware is working correctly
 async function getProfile(req, res) {
     return res.status(200).json({
