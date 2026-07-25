@@ -5,17 +5,20 @@ dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 const express = require('express');
 const connectDB = require('./config/database');
+const authRoutes = require('./routes/auth.routes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+app.use(express.json());
 // health check
-
 app.get('/', (req, res)=> {
     res.json({
         success: true,
         message:'Pocketwise API is running successfully!'
     })
-})
+});
+// auth routes
+app.use('/api/auth', authRoutes);
 
 async function startServer() {
     await connectDB();
