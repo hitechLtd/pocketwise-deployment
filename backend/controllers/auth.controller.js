@@ -32,15 +32,9 @@ async function registerUser(req ,res) {
             email: normalizedEmail,
             password: hashedPassword
         })
-        await user.save();
         return res.status(201).json({
             success: true,
-            message: "User registered successfully",
-            user: {
-                id: user._id,
-                fullName: user.fullName,
-                email: user.email
-            }
+            message: "User registered successfully"
         })
     } catch(error) {
         return res.status(500).json({
@@ -65,7 +59,12 @@ async function loginUser(req, res) {
         if(!user) {
             return res.status(401).json({
                 success: false,
-                message: "Invalid email or password"
+                message: "Invalid email or password",
+                user: {
+                    id:user._id,
+                    fullName: user.fullName,
+                    email: user.email
+                }
             });
         }
 
@@ -134,9 +133,7 @@ async function forgotPassword(req, res) {
         user.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
         await user.save();
         // for test purposes
-        console.log(`Raw token: ${resetToken}`);
-        console.log(`Hashed token: ${hashedToken}`);
-        console.log(`Expires at:  ${user.passwordResetExpires}`);
+      
          resetLink = `${process.env.FRONTEND_URL}/components/reset-password.html?token=${resetToken}`
 
         await sendResetPasswordEmail(user.email, resetLink)
@@ -159,6 +156,68 @@ async function forgotPassword(req, res) {
         });
     }
 }
+async function resetPassword(req, res) {
+    try {
+        const token = req.params.token || req.body.token;
+        const { password, confirmPassword } = req.body;
+        if(!password || !confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Both fields are missing"
+            })
+        }
+        if(password !== confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Passwords do not match!"
+            });
+        }
+        if(password.length < 8) {
+            return res.status(400).json({
+                success: false,
+                message:"Password must contain at least 8 characters"
+            });
+        }
+
+        const hashedToken = crypto
+            .createHash("sha256")
+            .update(token)
+            .digest("hex");
+
+        const user = await User.findOne({
+            passwordResetToken: hashedToken,
+            passwordResetExpires: {$gt: Date.now()}
+        });
+        if(!user) {
+            return res.status(400).json({
+                success: false,
+                message: "Reset token is invalid or it has expired"
+            });
+        }
+        user.password = await bcrypt.hash(password, 10);
+        user.passwordResetToken = undefined;
+        user.passwordResetExpires = undefined;
+
+        await user.save();
+
+        console.log(`Received raw token: ${token}`);
+        console.log(`Hashed token: ${hashedToken}`);
+        console.log(`Current time: ${new Date()}`);
+
+        return res.status(200).json({
+            success: true,
+            message: "Password reset successfully"
+        })
+    } catch(error) {
+        console.error("Error reseting password:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Unable to reset password"
+        })
+
+    }
+
+}
 // was meant for test purposes to see if the protectRoutes middleware is working correctly
 async function getProfile(req, res) {
     return res.status(200).json({
@@ -169,4 +228,5 @@ async function getProfile(req, res) {
 module.exports = {registerUser, 
                 loginUser,  
                 getProfile,
-                forgotPassword};
+                forgotPassword,
+                resetPassword};
