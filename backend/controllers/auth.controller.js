@@ -134,7 +134,7 @@ async function forgotPassword(req, res) {
         await user.save();
         // for test purposes
       
-         resetLink = `${process.env.FRONTEND_URL}/components/reset-password.html?token=${resetToken}`
+         resetLink = `${process.env.FRONTEND_URL}/frontend/reset-password.html?token=${resetToken}`
 
         await sendResetPasswordEmail(user.email, resetLink)
 
