@@ -92,14 +92,12 @@ button {
   justify-content: center;
   padding: 32px 16px;
 
-  background:
-    url(../images/pocketwisebackground.jpg) center top/100% 350px no-repeat,
-    linear-gradient(
-      180deg,
-      var(--forest) 0%,
-      var(--forest) 260px,
-      var(--bg) 260px
-    );
+  background: url(../images/pocketwisebackground.jpg);
+  /* center top/100% 350px
+    no-repeat; */
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
 }
 
 .auth-card {
