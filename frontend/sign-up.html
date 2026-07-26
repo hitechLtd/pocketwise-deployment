@@ -89,17 +89,51 @@
     </div>
     <!-- Form Verification -->
     <script>
-      document.getElementById("signup-form").addEventListener("submit", (e) => {
-        e.preventDefault();
-        const password = document.getElementById("password").value;
-        const confirm = document.getElementById("confirm").value;
-        if (password !== confirm) {
-          alert("Passwords don't match — please check and try again.");
-          return;
-        }
-        // Demo-only: goes straight to dashboard, no real account creation.
-        window.location.href = "dashboard.html";
-      });
+      document
+        .getElementById("signup-form")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const fullName = document.getElementById("fullName").value.trim();
+          const email = document.getElementById("email").value.trim();
+          const password = document.getElementById("password").value;
+          const confirmPassword = document.getElementById("confirm").value;
+
+          if (password !== confirmPassword) {
+            alert("Passwords don't match — please check and try again.");
+            return;
+          }
+
+          try {
+            const response = await fetch(
+              "http://localhost:5000/api/auth/register",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  fullName,
+                  email,
+                  password,
+                }),
+              },
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+              alert(data.message);
+              return;
+            }
+
+            alert(data.message);
+
+            window.location.href = "login.html";
+          } catch (error) {
+            console.error("Signup error:", error);
+            alert("Could not connect to the server.");
+          }
+        });
     </script>
   </body>
 </html>
