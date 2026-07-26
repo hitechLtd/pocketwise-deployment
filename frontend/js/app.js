@@ -49,16 +49,39 @@ function authHeaders() {
 
 // ---------- Data fetching ----------
 async function fetchTransactions() {
-  if (USE_MOCK_DATA) return mockTransactions;
-  const res = await fetch(`${API_BASE}/transactions`, {
-    headers: { ...authHeaders() },
-  });
-  if (res.status === 401) {
-    // Token missing/expired — send back to login instead of crashing.
-    window.location.href = 'login.html';
+  if (USE_MOCK_DATA) return {
+     mockTransactions 
+    };
+  
+  try {
+    const response = await fetch(`${API_BASE}/transactions`, {
+      headers: {
+        ...authHeaders(),
+      },
+    });
+    const data = await response.json();
+
+    if(response.status === 401) {
+      localStorage.removeItem('pw_token');
+      localStorage.removeItem('pw_user_name');
+      window.location.href = 'login.html';
+      return [];
+    }
+    if(!response.ok) {
+      throw new Error(data.message || 'Unable to load transactions');
+    }
+
+    const transactions =
+      data.transactions ||
+      data.transaction ||
+      data.data ||
+      data;
+
+    return Array.isArray(transactions) ? transactions : []
+  } catch (error) {
+    console.error('Fetch transactions error:', error);
     return [];
   }
-  return res.json();
 }
 
 async function fetchInsights() {
@@ -74,19 +97,39 @@ async function fetchInsights() {
   return res.json();
 }
 
-// ---------- Stat cards ----------
-function computeStats(transactions) {
-  const income = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const expenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+function computeStats(transactions = []) {
+  const income = transactions
+    .filter(transaction => transaction.type === 'income')
+    .reduce(
+      (total, transaction) => total + Number(transaction.amount),
+      0
+    );
+
+  const expenses = transactions
+    .filter(transaction => transaction.type === 'expense')
+    .reduce(
+      (total, transaction) => total + Number(transaction.amount),
+      0
+    );
+
   const balance = income - expenses;
-  const savingsRate = income > 0 ? ((balance / income) * 100).toFixed(1) : 0;
-  return { income, expenses, balance, savingsRate };
+
+  const savingsRate =
+    income > 0
+      ? ((balance / income) * 100).toFixed(1)
+      : 0;
+
+  return {
+    income,
+    expenses,
+    balance,
+    savingsRate,
+  };
 }
 
-function formatMK(n) {
-  return 'MK' + n.toLocaleString();
+function formatMK(amount) {
+  return `MK${Number(amount).toLocaleString('en-MW')}`;
 }
-
 function renderStats(transactions) {
   const { income, expenses, balance, savingsRate } = computeStats(transactions);
   document.getElementById('stat-income').textContent = formatMK(income);
@@ -98,24 +141,48 @@ function renderStats(transactions) {
 // ---------- Transaction lists ----------
 function txRowHTML(t) {
   const sign = t.type === 'income' ? '+' : '-';
+  const transactionDate = t.date || t.createdAt;
+
+  const formattedDate = transactionDate 
+      ? new Date(transactionDate).toLocaleDateString() : 'No date';
   return `
     <div class="tx-row">
       <div class="tx-left">
-        <div class="tx-icon">${t.icon || (t.type === 'income' ? '💰' : '💸')}</div>
+        <div class="tx-icon">
+        ${t.icon || (t.type === 'income' ? '💰' : '💸')}
+
+        </div>
         <div>
-          <div class="tx-name">${t.description || t.category}</div>
-          <div class="tx-date">${t.date}</div>
+          <div class="tx-name">${t.description || t.category}
+          </div>
+
+          <div class="tx-date">
+          ${formattedDate}
+          </div>
         </div>
       </div>
-      <div class="tx-amount ${t.type}">${sign}${formatMK(t.amount)}</div>
+      <div class="tx-amount ${t.type}">
+      ${sign}${formatMK(t.amount)}</div>
     </div>
   `;
 }
 
 function renderTransactionLists(transactions) {
-  const sorted = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
-  document.getElementById('recent-tx-list').innerHTML = sorted.slice(0, 5).map(txRowHTML).join('');
-  document.getElementById('full-tx-list').innerHTML = sorted.map(txRowHTML).join('');
+  const sorted = [...transactions].sort((a, b) => {
+    const dateA = new Date(a.date || a.createdAt);
+    const dateB = new Date(b.date || b.createdAt);
+
+    return dateB - dateA;
+  });
+  document.getElementById('recent-tx-list').innerHTML =
+   sorted.length > 0
+    ? sorted.slice(0, 5).map(txRowHTML).join('')
+    : '<p>No transactions yet. </p>';
+
+    document.getElementById('full-tx-list').innerHTML =
+    sorted.length > 0
+    ? sorted.map(txRowHTML).join('')
+    : '<p>No transactions yet. Add your first transaction.</p>';
 }
 
 // ---------- Charts ----------
@@ -145,30 +212,84 @@ function renderCategoryChart(transactions) {
   });
 }
 
+//   fetchTransactions().then(transactions => {
+//     const sorted = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
+//     if (trendChartInstance) trendChartInstance.destroy();
+//     trendChartInstance = new Chart(document.getElementById('trendChart'), {
+//       type: 'line',
+//       data: {
+//         labels: sorted.map(t => t.date.slice(5)),
+//         datasets: [{
+//           label: 'Expense (MK)',
+//           data: sorted.filter(t => t.type === 'expense').map(t => t.amount),
+//           borderColor: '#16a34a',
+//           backgroundColor: 'rgba(22,163,74,0.08)',
+//           fill: true,
+//           tension: 0.35,
+//         }]
+//       },
+//       options: { plugins: { legend: { display: false } } }
+//     });
+
+//     renderCategoryBars(transactions);
+//   });
+// }
+
+// The labels include every transaction, while the data only includes expense. That can cause mismatched chart values
+// improved version
+
 function renderTrendChart() {
   fetchTransactions().then(transactions => {
-    const sorted = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
-    if (trendChartInstance) trendChartInstance.destroy();
-    trendChartInstance = new Chart(document.getElementById('trendChart'), {
-      type: 'line',
-      data: {
-        labels: sorted.map(t => t.date.slice(5)),
-        datasets: [{
-          label: 'Expense (MK)',
-          data: sorted.filter(t => t.type === 'expense').map(t => t.amount),
-          borderColor: '#16a34a',
-          backgroundColor: 'rgba(22,163,74,0.08)',
-          fill: true,
-          tension: 0.35,
-        }]
-      },
-      options: { plugins: { legend: { display: false } } }
-    });
+    const expenses = transactions
+      .filter(transaction => transaction.type === 'expense')
+      .sort((a, b) => {
+        const dateA = new Date(a.date || a.createdAt);
+        const dateB = new Date(b.date || b.createdAt);
+
+        return dateA - dateB;
+      });
+
+    if (trendChartInstance) {
+      trendChartInstance.destroy();
+    }
+
+    trendChartInstance = new Chart(
+      document.getElementById('trendChart'),
+      {
+        type: 'line',
+        data: {
+          labels: expenses.map(transaction => {
+            const date = transaction.date || transaction.createdAt;
+            return new Date(date).toLocaleDateString();
+          }),
+
+          datasets: [
+            {
+              label: 'Expense (MK)',
+              data: expenses.map(transaction =>
+                Number(transaction.amount)
+              ),
+              borderColor: '#16a34a',
+              backgroundColor: 'rgba(22,163,74,0.08)',
+              fill: true,
+              tension: 0.35,
+            },
+          ],
+        },
+
+        options: {
+          plugins: {
+            legend: {
+              display: false,
+            },
+          },
+        },
+      }
+    );
 
     renderCategoryBars(transactions);
   });
 }
-
 function renderCategoryBars(transactions) {
   const byCategory = groupByCategory(transactions);
   const total = Object.values(byCategory).reduce((a, b) => a + b, 0) || 1;
@@ -221,42 +342,71 @@ document.querySelectorAll('.type-toggle button').forEach(btn => {
   });
 });
 
-document.getElementById('transaction-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
+document
+  .getElementById('transaction-form')
+  .addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-  const newTx = {
-    id: Date.now(),
-    type: document.getElementById('tx-type').value,
-    amount: Number(document.getElementById('amount').value),
-    category: document.getElementById('category').value,
-    description: document.getElementById('description').value,
-    date: new Date().toISOString().slice(0, 10),
-    icon: document.getElementById('tx-type').value === 'income' ? '💰' : '💸',
-  };
+    const newTx = {
+      type: document.getElementById('tx-type').value,
+      amount: Number(document.getElementById('amount').value),
+      category: document.getElementById('category').value,
+      description: document.getElementById('description').value.trim(),
+      date: new Date().toISOString(),
+    };
 
-  if (USE_MOCK_DATA) {
-    mockTransactions.push(newTx);
-  } else {
-    await fetch(`${API_BASE}/transactions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify(newTx),
-    });
-  }
+    try {
+      if (USE_MOCK_DATA) {
+        mockTransactions.push({
+          id: Date.now(),
+          ...newTx,
+          icon: newTx.type === 'income' ? '💰' : '💸',
+        });
+      } else {
+        const response = await fetch(`${API_BASE}/transactions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders(),
+          },
+          body: JSON.stringify(newTx),
+        });
 
-  e.target.reset();
-  document.querySelectorAll('.type-toggle button').forEach(b => b.classList.remove('active'));
-  document.querySelector('.type-toggle button[data-type="expense"]').classList.add('active');
-  document.getElementById('tx-type').value = 'expense';
+        const data = await response.json();
 
-  init();
-  switchView('transactions');
-});
+        if (response.status === 401) {
+          localStorage.removeItem('pw_token');
+          localStorage.removeItem('pw_user_name');
+          window.location.href = 'login.html';
+          return;
+        }
 
-// ---------- Display logged-in user's name ----------
-// Demo-only: name comes from what was typed at login/signup (see login.html /
-// signup.html). Once real auth is wired in, replace this with the
-// name returned from the backend after a real login call.
+        if (!response.ok) {
+          throw new Error(data.message || 'Unable to save transaction');
+        }
+      }
+
+      e.target.reset();
+
+      document
+        .querySelectorAll('.type-toggle button')
+        .forEach(button => button.classList.remove('active'));
+
+      document
+        .querySelector('.type-toggle button[data-type="expense"]')
+        .classList.add('active');
+
+      document.getElementById('tx-type').value = 'expense';
+
+      await init();
+      switchView('transactions');
+    } catch (error) {
+      console.error('Add transaction error:', error);
+      alert(error.message);
+    }
+  });
+
+
 function renderUserName() {
   const name = localStorage.getItem('pw_user_name') || 'User';
   document.getElementById('sidebar-username').textContent = name;

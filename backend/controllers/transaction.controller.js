@@ -11,9 +11,11 @@ async function getTransactions(req, res) {
         return res.status(200).json({
             success: true,
             message: "Successfully retreieved all transactions",
-            response: transactions
-        })
+            transactions,
+        });
     } catch(error) {
+        console.error('Get transactions error:', error);
+        
         return res.status(500).json({
             success: false,
             message: "Unable to retrieve transactions",
