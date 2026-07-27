@@ -59,11 +59,6 @@ async function loginUser(req, res) {
       return res.status(401).json({
         success: false,
         message: "Invalid email or password",
-        user: {
-          id: user._id,
-          fullName: user.fullName,
-          email: user.email,
-        },
       });
     }
 
