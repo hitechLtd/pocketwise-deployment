@@ -88,52 +88,62 @@
       </div>
     </div>
     <!-- Form Verification -->
-    <script>
-      document
-        .getElementById("signup-form")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const fullName = document.getElementById("fullName").value.trim();
-          const email = document.getElementById("email").value.trim();
-          const password = document.getElementById("password").value;
-          const confirmPassword = document.getElementById("confirm").value;
+   <script>
+  const signupForm = document.getElementById("signup-form");
 
-          if (password !== confirmPassword) {
-            alert("Passwords don't match — please check and try again.");
-            return;
-          }
+  signupForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
 
-          try {
-            const response = await fetch(
-              "http://localhost:5000/api/auth/register",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  fullName,
-                  email,
-                  password,
-                }),
-              },
-            );
+    const fullName = document.getElementById("fullname").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    const confirmPassword = document.getElementById("confirm").value;
 
-            const data = await response.json();
+    if (!fullName || !email || !password || !confirmPassword) {
+      alert("Please complete all fields.");
+      return;
+    }
 
-            if (!response.ok) {
-              alert(data.message);
-              return;
-            }
+    if (password !== confirmPassword) {
+      alert("Passwords do not match.");
+      return;
+    }
 
-            alert(data.message);
+    try {
+      const response = await fetch(
+        "http://localhost:5000/api/auth/register",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fullName: fullName,
+            email: email,
+            password: password,
+          }),
+        }
+      );
 
-            window.location.href = "login.html";
-          } catch (error) {
-            console.error("Signup error:", error);
-            alert("Could not connect to the server.");
-          }
-        });
-    </script>
+      const data = await response.json();
+
+      console.log("Status:", response.status);
+      console.log("Response:", data);
+
+      if (!response.ok) {
+        alert(data.message || "Registration failed.");
+        return;
+      }
+
+      alert(data.message || "Account created successfully.");
+      window.location.href = "login.html";
+    } catch (error) {
+      console.error("Registration request failed:", error);
+      alert(
+        "Could not connect to the backend. Make sure the server is running on port 5000."
+      );
+    }
+  });
+</script>
   </body>
 </html>

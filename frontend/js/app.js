@@ -49,8 +49,8 @@ function authHeaders() {
 
 // ---------- Data fetching ----------
 async function fetchTransactions() {
-  if (USE_MOCK_DATA) return {
-     mockTransactions 
+  if (USE_MOCK_DATA)  {
+   return  mockTransactions 
     };
   
   try {

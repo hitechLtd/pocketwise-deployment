@@ -88,6 +88,12 @@ async function loginUser(req, res) {
       success: true,
       message: "Login successful",
       token: token,
+      user:{
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email
+      }
+
     });
   } catch (error) {
     return res.status(500).json({
