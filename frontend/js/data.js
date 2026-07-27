@@ -1,6 +1,6 @@
 
 const USE_MOCK_DATA = false;
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'https://pocketwise-deployment-production.up.railway.app/'
 
 let mockTransactions = [
   { id: 1, type: 'income',  amount: 120000, category: 'Salary',         description: 'Monthly salary', date: '2025-05-01', icon: '💰' },
